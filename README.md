@@ -7,6 +7,9 @@ an easy Go program allowing to encrypt/decrypt file quickly
 prompt$ <path/to/chacha>
 ```
 - read the usage
+```
+usage : ./bin/chacha.lin [encrypt/decrypt] <key> <file> <file> ...
+```
 - call the program again with the right arguments
 ```
 prompt$ <path/to/chacha> encrypt MySuperPrivateKey homework.txt presentation.ppt
