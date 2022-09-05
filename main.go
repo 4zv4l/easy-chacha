@@ -21,6 +21,36 @@ func handleError(err error) {
 	}
 }
 
+func handle(filename, key, nonce string, isEncrypt bool, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	// open the input file in read-only mode
+	in, err := os.OpenFile(filename, os.O_RDONLY, 0600)
+	handleError(err)
+	defer in.Close()
+
+	switch {
+	// encrypt mode
+	case isEncrypt:
+		// setup the output file
+		outName := fmt.Sprintf("%s.cha", in.Name())
+		out, err := os.OpenFile(outName, os.O_CREATE|os.O_WRONLY, 0600)
+		handleError(err)
+		defer out.Close()
+		err = chacha.EncryptFile(in, out, key, nonce)
+		handleError(err)
+	// decrypt mode
+	case !isEncrypt:
+		// setup the output file
+		outName := strings.TrimSuffix(in.Name(), ".cha") + ".dec"
+		out, err := os.OpenFile(outName, os.O_CREATE|os.O_WRONLY, 0600)
+		handleError(err)
+		defer out.Close()
+		err = chacha.DecryptFile(in, out, key, nonce)
+		handleError(err)
+	}
+}
+
 func main() {
 	// check if there is enough arguments
 	args := os.Args
@@ -48,38 +78,7 @@ func main() {
 	// for each file given => process them in a goroutine
 	for _, file := range files {
 		wg.Add(1)
-		go func(filename string, isEncrypt bool, wg *sync.WaitGroup){
-			defer wg.Done()
-
-			// open the input file in read-only mode
-			in, err := os.OpenFile(filename, os.O_RDONLY, 0600)
-			handleError(err)
-			defer in.Close()
-
-			switch {
-			
-			// encrypt mode
-			case isEncrypt:
-				// setup the output file
-				outName := fmt.Sprintf("%s.cha", in.Name())
-				out, err := os.OpenFile(outName, os.O_CREATE|os.O_WRONLY, 0600)
-				handleError(err)
-				defer out.Close()
-				err = chacha.EncryptFile(in, out, key, nonce)
-				handleError(err)
-			
-			// decrypt mode
-			case !isEncrypt:
-				// setup the output file
-				outName := strings.TrimSuffix(in.Name(), ".cha") + ".dec"
-				out, err := os.OpenFile(outName, os.O_CREATE|os.O_WRONLY, 0600)
-				handleError(err)
-				defer out.Close()
-				err = chacha.DecryptFile(in, out, key, nonce)
-				handleError(err)
-
-			}
-		}(file, isEncrypt, &wg)
+		handle(file, key, nonce, isEncrypt, &wg)
 	}
 
 	// wait for each file to be processed
